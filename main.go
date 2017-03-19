@@ -9,7 +9,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/gsora/tsreddit/support"
+	"github.com/tecnoscimmie/tsredditbot/support"
 )
 
 var baseURL = ""
