@@ -20,8 +20,8 @@ func createTokenRequest(reqType string, url string, body url.Values, username st
 	return req, nil
 }
 
-func createAuthenticatedRequest(reqType string, url string, token TokenResponse) (*http.Request, error) {
-	req, err := http.NewRequest(reqType, url, nil)
+func createAuthenticatedRequest(reqType string, url string, token TokenResponse, body url.Values) (*http.Request, error) {
+	req, err := http.NewRequest(reqType, url, strings.NewReader(body.Encode()))
 	if err != nil {
 		return &http.Request{}, err
 	}
