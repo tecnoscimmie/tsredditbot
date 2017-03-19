@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/tecnoscimmie/tsredditbot/reddit"
 	"github.com/tecnoscimmie/tsredditbot/support"
@@ -67,7 +68,7 @@ func secureSendMessage(tObj support.TelegramObject, text string) {
 	log.Println("got message from", recipient)
 
 	params := url.Values{}
-	if _, err := url.ParseRequestURI(tObj.Message.Text); err != nil {
+	if _, err := url.ParseRequestURI(tObj.Message.Text); err != nil || strings.HasPrefix(tObj.Message.Text, "/") {
 		params.Set("chat_id", strconv.Itoa(tObj.Message.Chat.ID))
 		params.Set("text", "Not a valid URL :(")
 	} else {
