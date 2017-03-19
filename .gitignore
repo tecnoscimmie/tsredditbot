@@ -22,3 +22,10 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+# Emacs waste files
+*~
+\#*\#
+
+# Our working configuration file -- no free OAuth tokens for you!
+tsreddit.json
