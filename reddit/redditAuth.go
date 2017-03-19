@@ -104,16 +104,13 @@ func (s *Session) Post(urlBeingPosted string) error {
 		return err
 	}
 
-	resp, err := client.Do(req)
+	_, err = client.Do(req) // _ -> resp
 
 	if err != nil {
 		return err
 	}
 
-	asd, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(asd))
-	resp.Body.Close()
-
+	// need to parse resp and check for errors
 	return nil
 }
 
