@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/tecnoscimmie/tsredditbot/support"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 )
