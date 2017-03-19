@@ -3,13 +3,15 @@ package reddit
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/tecnoscimmie/tsredditbot/support"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 )
 
 var requestTokenURL = "https://www.reddit.com/api/v1/access_token"
-var baseOauthURL = "https://oauth.reddit.com/api/v1/"
+var baseOauthURL = "https://oauth.reddit.com/api/"
+var defaultSubreddit = "tecnoscimmie"
 
 // TokenResponse is what reddit replies us with when requesting a token using RequestToken()
 type TokenResponse struct {
@@ -24,21 +26,48 @@ func (t *TokenResponse) GetAuthString() string {
 	return fmt.Sprintf("%s %s", t.TokenType, t.AccessToken)
 }
 
-// RequestToken requests a token for any given username, password, client ID and client secret
-func RequestToken(username string, password string, clientID string, clientSecret string) (TokenResponse, error) {
+// Session is a currently-active reddit session
+type Session struct {
+	Username     string
+	Password     string
+	ClientID     string
+	ClientSecret string
+	Token        TokenResponse
+}
+
+// NewSession creates a Session
+func NewSession(username string, password string, clientID string, clientSecret string) (Session, error) {
+	s := Session{}
+	s.Username = username
+	s.Password = password
+	s.ClientID = clientID
+	s.ClientSecret = clientSecret
+	err := s.RequestToken()
+
+	if err != nil {
+		return Session{}, err
+	}
+
+	return s, nil
+}
+
+// RequestToken requests a token for any given username, password, client ID and client secret.
+// Does not return the TokenResponse, that will be saved inside the Session instead.
+// Does return an error.
+func (s *Session) RequestToken() error {
 
 	client := &http.Client{}
 
 	vals := url.Values{}
 	vals.Set("grant_type", "password")
-	vals.Set("username", username)
-	vals.Set("password", password)
+	vals.Set("username", s.Username)
+	vals.Set("password", s.Password)
 
-	req, err := createTokenRequest("POST", requestTokenURL, vals, clientID, clientSecret)
+	req, err := createTokenRequest("POST", requestTokenURL, vals, s.ClientID, s.ClientSecret)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return TokenResponse{}, err
+		return err
 	}
 	defer resp.Body.Close()
 
@@ -47,25 +76,68 @@ func RequestToken(username string, password string, clientID string, clientSecre
 	err = respDecoder.Decode(&token)
 
 	if err != nil {
-		return TokenResponse{}, err
+		return err
 	}
 
-	return token, nil
+	s.Token = token
+
+	return nil
 }
 
-func Me(t TokenResponse) (string, error) {
+// Post posts an URL to our subreddit
+func (s *Session) Post(urlBeingPosted string) error {
 	client := &http.Client{}
-	req, err := createAuthenticatedRequest("GET", baseOauthURL+"me", t)
+
+	pageTitle, err := support.GetPageTitle(urlBeingPosted)
 	if err != nil {
-		return "", err
+		return err
+	}
+
+	vals := url.Values{}
+	vals.Add("sr", defaultSubreddit)
+	vals.Add("kind", "link")
+	vals.Add("url", urlBeingPosted)
+	vals.Add("title", pageTitle)
+
+	req, err := createAuthenticatedRequest("POST", baseOauthURL+"submit", s.Token, vals)
+	if err != nil {
+		return err
+	}
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		return err
+	}
+
+	asd, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(asd))
+	resp.Body.Close()
+
+	return nil
+}
+
+// Me pokes /api/v1/me
+func (s *Session) Me() (Me, error) {
+	client := &http.Client{}
+	req, err := createAuthenticatedRequest("GET", baseOauthURL+"me", s.Token, url.Values{})
+	if err != nil {
+		return Me{}, err
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return Me{}, err
 	}
 
 	defer resp.Body.Close()
-	b, _ := ioutil.ReadAll(resp.Body)
-	return string(b), nil
+	var m Me
+	dec := json.NewDecoder(resp.Body)
+	err = dec.Decode(&m)
+
+	if err != nil {
+		return Me{}, err
+	}
+
+	return m, nil
 }
