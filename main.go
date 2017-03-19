@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/tecnoscimmie/tsredditbot/reddit"
 	"github.com/tecnoscimmie/tsredditbot/support"
 )
 
@@ -34,7 +35,7 @@ func main() {
 	baseURL = "https://api.telegram.org/bot" + conf.BotToken + "/"
 
 	// set the webhook as the configuration file says
-	_, err = http.PostForm(baseURL+"/setWebhook", url.Values{"url": {conf.URL + ":" + conf.Port + "/" + conf.Endpoint}})
+	_, err := http.PostForm(baseURL+"setWebhook", url.Values{"url": {conf.URL + ":" + conf.Port + "/" + conf.Endpoint}})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,6 +48,7 @@ func main() {
 	}
 
 	http.HandleFunc("/"+conf.Endpoint, endpointHandler)
+
 	log.Fatal(http.ListenAndServeTLS(":"+conf.Port, conf.CertPath, conf.KeyPath, nil))
 }
 
@@ -62,20 +64,22 @@ func endpointHandler(w http.ResponseWriter, r *http.Request) {
 func secureSendMessage(tObj support.TelegramObject, text string) {
 
 	recipient := tObj.Message.From.Username
-	_ = recipient
+	log.Println("got message from", recipient)
 
 	params := url.Values{}
-	params.Set("chat_id", strconv.Itoa(tObj.Message.Chat.ID))
-	params.Set("text", "Not authorized.")
+	if _, err := url.ParseRequestURI(tObj.Message.Text); err != nil {
+		params.Set("chat_id", strconv.Itoa(tObj.Message.Chat.ID))
+		params.Set("text", "Not a valid URL :(")
+	} else {
+		params.Set("chat_id", strconv.Itoa(tObj.Message.Chat.ID))
+		params.Set("text", "Posted! :D")
 
-	/*for _, username := range conf.AuthorizedUsers {
-		if username == recipient {
-			params.Del("text")
-			params.Set("text", text)
-			break
+		s, err := reddit.NewSession(redditUsername, redditPassword, redditClientID, redditClientSecret)
+		if err != nil {
+			return
 		}
-	}*/
-
+		s.Post(tObj.Message.Text)
+	}
 	_, err := http.PostForm(baseURL+"sendMessage", params)
 	if err != nil {
 		log.Fatal(err)
