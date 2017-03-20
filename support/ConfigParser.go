@@ -24,7 +24,8 @@ func CheckConfigFile() (ConfigFile, error) {
 	cReader := bufio.NewReader(confFileObject)
 
 	// our configuration file structure resides here!
-	configFile, err := LoadJSONToConfigFile(cReader)
+	var configFile ConfigFile
+	err = configFile.DecodeConfigFile(cReader)
 
 	if err != nil {
 		err = errors.New("error: your configuration file is malformed, check for any typos or missing properties")
