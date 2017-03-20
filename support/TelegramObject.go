@@ -23,3 +23,12 @@ func (t *TelegramObject) DecodeJSON(r io.ReadCloser) error {
 
 	return nil
 }
+
+// HasInlineQuery checks if its TelegramObject has Inline query data
+func (t *TelegramObject) HasInlineQuery() bool {
+	if (InlineQuery{}) != t.InlineQuery || (ChosenInlineResult{}) != t.ChosenInlineResult {
+		return false
+	}
+
+	return true
+}

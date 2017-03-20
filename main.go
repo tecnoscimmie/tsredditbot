@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
+	//"net/url"
 	"os"
-	"strconv"
-	"strings"
+	//"strconv"
+	//"strings"
 
-	"github.com/tecnoscimmie/tsredditbot/reddit"
+	//"github.com/tecnoscimmie/tsredditbot/reddit"
 	"github.com/tecnoscimmie/tsredditbot/support"
 )
 
@@ -56,34 +56,12 @@ func endpointHandler(w http.ResponseWriter, r *http.Request) {
 	if debug {
 		log.Printf("got message -> %+v\n", data)
 	}
-	echoText := data.Message.Text
-	secureSendMessage(data, echoText)
 
-}
-
-// simple function to send a message back to its chat, and check for security
-func secureSendMessage(tObj support.TelegramObject, text string) {
-
-	recipient := tObj.Message.From.Username
-	log.Println("got message from", recipient)
-
-	params := url.Values{}
-	if _, err := url.ParseRequestURI(tObj.Message.Text); err != nil || strings.HasPrefix(tObj.Message.Text, "/") {
-		params.Set("chat_id", strconv.Itoa(tObj.Message.Chat.ID))
-		params.Set("text", "Not a valid URL :(")
+	// if it's a chat message
+	if !data.HasInlineQuery() {
+		log.Println("got inline message from", data.InlineQuery.From.Username)
 	} else {
-		params.Set("chat_id", strconv.Itoa(tObj.Message.Chat.ID))
-		params.Set("text", "Posted! :D")
-
-		s, err := reddit.NewSession(redditUsername, redditPassword, redditClientID, redditClientSecret)
-		if err != nil {
-			return
-		}
-		s.Post(tObj.Message.Text)
-	}
-	_, err := http.PostForm(baseURL+"sendMessage", params)
-	if err != nil {
-		log.Fatal(err)
+		log.Println("got chat message from", data.Message.From.Username)
 	}
 }
 
