@@ -2,6 +2,7 @@ package support
 
 import (
 	"errors"
+	"github.com/asaskevich/govalidator"
 	"golang.org/x/net/html"
 	"log"
 	"net/http"
@@ -9,6 +10,10 @@ import (
 
 // GetPageTitle returns the <title> of a given page
 func GetPageTitle(pageURL string) (string, error) {
+	if !govalidator.IsURL(pageURL) {
+		return "", errors.New("argument is not a valid URL")
+	}
+
 	r, err := http.Get(pageURL)
 	if err != nil {
 		log.Fatal(err)
