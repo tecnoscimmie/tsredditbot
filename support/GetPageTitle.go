@@ -2,16 +2,22 @@ package support
 
 import (
 	"errors"
+	"fmt"
 	"github.com/asaskevich/govalidator"
 	"golang.org/x/net/html"
 	"log"
 	"net/http"
+	"strings"
 )
 
 // GetPageTitle returns the <title> of a given page
 func GetPageTitle(pageURL string) (string, error) {
 	if !govalidator.IsURL(pageURL) {
 		return "", errors.New("argument is not a valid URL")
+	}
+
+	if !strings.HasPrefix(pageURL, "http://") && !strings.HasPrefix(pageURL, "https://") {
+		pageURL = fmt.Sprintf("http://%s", pageURL)
 	}
 
 	r, err := http.Get(pageURL)
