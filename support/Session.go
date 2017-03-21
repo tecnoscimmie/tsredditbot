@@ -1,6 +1,7 @@
 package support
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -69,4 +70,26 @@ func (s *Session) PrintBotInformations() error {
 	fmt.Println("Bot name: " + u.Result.FirstName)
 
 	return err
+}
+
+// ReplyToInlineQuery replies to the inline query contained into the TelegramObject we're referencing
+func (s *Session) ReplyToInlineQuery(t TelegramObject) error {
+	article := []InlineQueryResultArticle{NewResultArticle(t.InlineQuery.ID, t.InlineQuery.Query, false)}
+
+	enc, err := json.Marshal(article)
+
+	if err != nil {
+		return err
+	}
+
+	v := url.Values{}
+	v.Add("inline_query_id", t.InlineQuery.ID)
+	v.Add("results", string(enc))
+
+	_, err = http.PostForm(baseURL+"answerInlineQuery", v)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
