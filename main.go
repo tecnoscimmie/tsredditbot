@@ -22,12 +22,13 @@ var redditPassword string
 var redditClientID string
 var redditClientSecret string
 var debug bool
+var botSession support.Session
 
 func main() {
 	// parse ALL the parameters!
 	parametersParser()
 
-	botSession, err := support.NewSession()
+	botSession, err = support.NewSession()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -55,11 +56,15 @@ func endpointHandler(w http.ResponseWriter, r *http.Request) {
 
 	if debug {
 		log.Printf("got message -> %+v\n", data)
+		log.Println("inline query ->", data.InlineQuery.Query)
 	}
 
 	// if it's a chat message
-	if !data.HasInlineQuery() {
+	if data.HasInlineQuery() && !data.HasInlineResult() {
 		log.Println("got inline message from", data.InlineQuery.From.Username)
+		botSession.ReplyToInlineQuery(data)
+	} else if data.HasInlineResult() {
+
 	} else {
 		log.Println("got chat message from", data.Message.From.Username)
 	}
