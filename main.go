@@ -1,16 +1,15 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
-	//"net/url"
 	"os"
-	//"strconv"
-	//"strings"
+	"strings"
 
-	//"github.com/tecnoscimmie/tsredditbot/reddit"
+	"github.com/tecnoscimmie/tsredditbot/reddit"
 	"github.com/tecnoscimmie/tsredditbot/support"
 )
 
@@ -48,6 +47,8 @@ func main() {
 // handle the webhook data
 func endpointHandler(w http.ResponseWriter, r *http.Request) {
 	var data support.TelegramObject
+	defer r.Body.Close()
+
 	err := data.DecodeJSON(r.Body)
 	if err != nil {
 		log.Println(err)
@@ -56,17 +57,53 @@ func endpointHandler(w http.ResponseWriter, r *http.Request) {
 
 	if debug {
 		log.Printf("got message -> %+v\n", data)
-		log.Println("inline query ->", data.InlineQuery.Query)
 	}
 
-	// if it's a chat message
-	if data.HasInlineQuery() && !data.HasInlineResult() {
-		log.Println("got inline message from", data.InlineQuery.From.Username)
-		botSession.ReplyToInlineQuery(data)
-	} else if data.HasInlineResult() {
+	if data.Message.Chat.ID == botSession.ChatID {
+		log.Println("got URL from command /post on group ", botSession.GroupHandle, "posting on reddit...")
 
-	} else {
-		log.Println("got chat message from", data.Message.From.Username)
+		url, err := splitPostCommand(data.Message.Text)
+
+		if debug {
+			log.Println("splitted url:", url)
+
+		}
+
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		validURL, err := support.ValidateURL(url)
+		if err != nil {
+			if err = data.ReplyBackToChat("Invalid URL :("); err != nil {
+				log.Println(err)
+				return
+			}
+			log.Println(err)
+			return
+		}
+
+		if debug {
+			log.Println("validated url:", validURL)
+		}
+
+		redditSession, err := reddit.NewSession(redditUsername, redditPassword, redditClientID, redditClientSecret)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		if err = redditSession.Post(validURL); err != nil {
+			log.Println(err)
+			return
+		}
+
+		if err = data.ReplyBackToChat("Posted!"); err != nil {
+			log.Println(err)
+			return
+		}
+
 	}
 }
 
@@ -90,4 +127,13 @@ func parametersParser() {
 		flag.Usage()
 		os.Exit(1)
 	}
+}
+
+func splitPostCommand(c string) (string, error) {
+	// split the string for 6 characters (the "/post " command, space included)
+	if strings.HasPrefix(c, "/post") {
+		return strings.TrimSpace(c[6:]), nil
+	}
+
+	return "", errors.New("string is not a \"/post\" command")
 }

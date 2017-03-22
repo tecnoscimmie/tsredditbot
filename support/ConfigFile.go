@@ -8,12 +8,13 @@ import (
 
 // ConfigFile represents the structure of a configuration file
 type ConfigFile struct {
-	CertPath string `json:"cert_path"`
-	KeyPath  string `json:"key_path"`
-	URL      string `json:"url"`
-	Endpoint string `json:"endpoint"`
-	BotToken string `json:"bot_token"`
-	Port     string `json:"port"`
+	CertPath    string `json:"cert_path"`
+	KeyPath     string `json:"key_path"`
+	URL         string `json:"url"`
+	Endpoint    string `json:"endpoint"`
+	BotToken    string `json:"bot_token"`
+	Port        string `json:"port"`
+	GroupHandle string `json:"group_handle"`
 }
 
 // DecodeConfigFile decodes a JSON configuration file into a ConfigFile

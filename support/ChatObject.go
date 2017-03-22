@@ -7,4 +7,5 @@ type Chat struct {
 	LastName  string `json:"last_name"`
 	Username  string `json:"username"`
 	Type      string `json:"type"`
+	Title     string `json:"title"`
 }

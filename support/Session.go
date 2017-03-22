@@ -2,6 +2,7 @@ package support
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -16,6 +17,8 @@ type Session struct {
 	Endpoint      string
 	URL           string
 	Configuration ConfigFile
+	ChatID        int
+	GroupHandle   string
 }
 
 // NewSession returns a new Telegram bot session
@@ -25,17 +28,23 @@ func NewSession() (Session, error) {
 		return Session{}, err
 	}
 
+	// TODO: add chatID and handle
 	var s Session
 	s.Token = conf.BotToken
 	s.Port = conf.Port
 	s.Endpoint = conf.Endpoint
 	s.URL = conf.URL
+	s.GroupHandle = conf.GroupHandle
 	s.Configuration = conf
-
 	baseURL = "https://api.telegram.org/bot" + s.Token + "/"
 
 	// setup webhook already
 	err = s.SetupWebHook()
+	if err != nil {
+		return Session{}, err
+	}
+
+	err = s.GetGroupUniqueID()
 	if err != nil {
 		return Session{}, err
 	}
@@ -72,24 +81,25 @@ func (s *Session) PrintBotInformations() error {
 	return err
 }
 
-// ReplyToInlineQuery replies to the inline query contained into the TelegramObject we're referencing
-func (s *Session) ReplyToInlineQuery(t TelegramObject) error {
-	article := []InlineQueryResultArticle{NewResultArticle(t.InlineQuery.ID, t.InlineQuery.Query, false)}
-
-	enc, err := json.Marshal(article)
-
-	if err != nil {
-		return err
-	}
-
+// GetGroupUniqueID returns the unique identifier for a given group handle
+func (s *Session) GetGroupUniqueID() error {
 	v := url.Values{}
-	v.Add("inline_query_id", t.InlineQuery.ID)
-	v.Add("results", string(enc))
+	v.Add("chat_id", s.GroupHandle)
 
-	_, err = http.PostForm(baseURL+"answerInlineQuery", v)
+	resp, err := http.PostForm(baseURL+"getChat", v)
 	if err != nil {
 		return err
 	}
+
+	var r GeneralReply
+	grdec := json.NewDecoder(resp.Body)
+	grdec.Decode(&r)
+
+	if !r.Ok {
+		return errors.New(fmt.Sprintln("error", r.ErrorCode, r.Description))
+	}
+
+	s.ChatID = r.Result.ID
 
 	return nil
 }
